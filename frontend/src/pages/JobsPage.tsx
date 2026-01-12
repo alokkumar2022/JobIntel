@@ -53,8 +53,14 @@ const JobsPage = () => {
       try {
         const response = await fetch('/api/jobs?status=active');
         if (response.ok) {
-          const jobs = await response.json();
-          setBackendJobs(jobs);
+          try {
+            const jobs = await response.json();
+            setBackendJobs(jobs);
+          } catch (jsonErr) {
+            console.log('Backend returned invalid JSON, using local store only');
+          }
+        } else {
+          console.log(`Backend returned status ${response.status}, using local store only`);
         }
       } catch (err) {
         console.log('Backend not available, using local store only:', err);
