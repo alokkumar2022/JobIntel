@@ -65,6 +65,15 @@ export const useAuthStore = create<AuthState>()(
                 preferredLocations: [],
                 preferredRoles: [],
                 createdAt: new Date().toISOString(),
+                notificationPreferences: {
+                  email: true,
+                  whatsapp: false,
+                  telegram: false,
+                  newJobMatch: true,
+                  deadlineReminder: true,
+                  applicationUpdate: true,
+                  referralUpdate: false,
+                },
               };
 
               set({
@@ -121,6 +130,15 @@ export const useAuthStore = create<AuthState>()(
             preferredLocations: [],
             preferredRoles: [],
             createdAt: new Date().toISOString(),
+            notificationPreferences: {
+              email: true,
+              whatsapp: false,
+              telegram: false,
+              newJobMatch: true,
+              deadlineReminder: true,
+              applicationUpdate: true,
+              referralUpdate: false,
+            },
           };
           
           set({ user, isAuthenticated: true, isLoading: false, isAdmin: false, token: accessToken });
@@ -170,6 +188,15 @@ export const useAuthStore = create<AuthState>()(
                 preferredLocations: [],
                 preferredRoles: [],
                 createdAt: new Date().toISOString(),
+                notificationPreferences: {
+                  email: true,
+                  whatsapp: false,
+                  telegram: false,
+                  newJobMatch: true,
+                  deadlineReminder: true,
+                  applicationUpdate: true,
+                  referralUpdate: false,
+                },
               };
 
               set({
