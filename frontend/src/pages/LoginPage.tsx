@@ -42,7 +42,7 @@ const LoginPage = () => {
   };
 
   const demoCredentials = [
-    { email: 'admin@jobscout.local', password: 'password123', tier: 'Admin', isAdmin: true },
+    { email: 'admin@jobintel.local', password: 'AdminPass!23', tier: 'Admin', isAdmin: true },
   ];
 
   const handleDemoLogin = async (demoEmail: string, demoPassword: string, isAdmin: boolean) => {

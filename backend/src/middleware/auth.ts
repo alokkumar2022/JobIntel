@@ -1,8 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
+import dotenv from "dotenv";
 
-const JWT_SECRET = process.env.JWT_SECRET || "secretdev";
+// Ensure env is loaded
+if (!process.env.JWT_SECRET) {
+  dotenv.config();
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev_jwt_secret_9f3a2b4c";
 
 export interface AuthRequest extends Request {
   user?: any;
