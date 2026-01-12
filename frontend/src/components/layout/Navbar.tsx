@@ -2,9 +2,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
+import { NotificationDropdown } from '@/components/NotificationDropdown';
 import {
   Briefcase,
-  Bell,
   User,
   LogOut,
   Menu,
@@ -81,12 +81,7 @@ export const Navbar = () => {
             {isAuthenticated && user ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
-                    3
-                  </span>
-                </Button>
+                <NotificationDropdown />
 
                 {/* User Menu */}
                 <DropdownMenu>
