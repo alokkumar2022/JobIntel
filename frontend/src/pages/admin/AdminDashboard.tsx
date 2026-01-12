@@ -50,10 +50,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         const [statsRes, jobRes, userRes] = await Promise.all([
-          fetch('/api/admin/stats'),
-          fetch('/api/admin/analytics/jobs'),
-          fetch('/api/admin/analytics/users'),
+          fetch('/api/admin/stats', { headers }),
+          fetch('/api/admin/analytics/jobs', { headers }),
+          fetch('/api/admin/analytics/users', { headers }),
         ]);
 
         if (statsRes.ok) {
@@ -224,8 +227,6 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Job Posting Trends</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">

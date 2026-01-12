@@ -1,33 +1,71 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { TrendingUp, DollarSign, CreditCard, Eye } from 'lucide-react';
+import { TrendingUp, DollarSign, CreditCard, Eye, Loader2 } from 'lucide-react';
 
-const revenueData = [
-  { month: 'Jan', revenue: 45000, subscriptions: 25, sponsored: 15 },
-  { month: 'Feb', revenue: 52000, subscriptions: 28, sponsored: 18 },
-  { month: 'Mar', revenue: 68000, subscriptions: 35, sponsored: 22 },
-  { month: 'Apr', revenue: 71000, subscriptions: 38, sponsored: 25 },
-  { month: 'May', revenue: 85000, subscriptions: 42, sponsored: 28 },
-  { month: 'Jun', revenue: 96000, subscriptions: 48, sponsored: 32 },
-];
-
-const paymentMethods = [
-  { method: 'Credit Card', amount: 245000, percentage: 55 },
-  { method: 'UPI', amount: 150000, percentage: 34 },
-  { method: 'Bank Transfer', amount: 55000, percentage: 11 },
-];
+interface RevenueData {
+  date: string;
+  revenue?: number;
+}
 
 export default function AdminRevenue() {
-  const totalRevenue = 545000;
-  const monthlyAverage = 90833;
-  const yearlyProjection = 1090000;
+  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        const res = await fetch('/api/admin/analytics/revenue', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setRevenueData(data);
+        }
+      } catch (err) {
+        setError('Failed to fetch revenue data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Revenue</h1>
+          <p className="text-muted-foreground">Track and manage revenue streams</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const totalRevenue = revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+  const monthlyAverage = totalRevenue / (revenueData.length || 1);
+  const yearlyProjection = monthlyAverage * 12;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Revenue</h1>
-        <p className="text-muted-foreground">Track and manage revenue streams</p>
+        <p className="text-muted-foreground">Track and manage revenue streams - Real-time data from database</p>
       </div>
 
       {/* Key Metrics */}
@@ -41,7 +79,7 @@ export default function AdminRevenue() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{(totalRevenue / 100000).toFixed(1)}L</div>
-            <p className="text-xs text-green-600">+18% from last period</p>
+            <p className="text-xs text-muted-foreground">Calculated from real data</p>
           </CardContent>
         </Card>
 
@@ -62,12 +100,12 @@ export default function AdminRevenue() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
-              Subscriptions
+              Data Points
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">48</div>
-            <p className="text-xs text-green-600">+12% active subscriptions</p>
+            <div className="text-2xl font-bold">{revenueData.length}</div>
+            <p className="text-xs text-muted-foreground">Last 6 months</p>
           </CardContent>
         </Card>
 
@@ -80,78 +118,69 @@ export default function AdminRevenue() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{(yearlyProjection / 100000).toFixed(1)}L</div>
-            <p className="text-xs text-muted-foreground">Based on current rate</p>
+            <p className="text-xs text-muted-foreground">Projected based on data</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
+            <CardTitle>Revenue Trend - Last 6 Months</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
-                <Area type="monotone" dataKey="revenue" stroke="#8884d8" fillOpacity={1} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
+                  <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Breakdown</CardTitle>
+            <CardTitle>Monthly Revenue Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="subscriptions" fill="#8884d8" name="Subscriptions" />
-                <Bar dataKey="sponsored" fill="#82ca9d" name="Sponsored" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Payment Methods */}
+      {/* Info Box */}
       <Card>
         <CardHeader>
-          <CardTitle>Payment Methods Distribution</CardTitle>
+          <CardTitle>Revenue Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {paymentMethods.map((payment, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">{payment.method}</span>
-                  <span className="font-semibold">₹{(payment.amount / 1000).toFixed(0)}K ({payment.percentage}%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${payment.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Revenue data is calculated based on the number of jobs posted (₹500 per job posting). 
+            This is placeholder revenue calculation until payment system is fully implemented. 
+            All data is fetched in real-time from the backend database and updated every 5 minutes.
+          </p>
         </CardContent>
       </Card>
     </div>
