@@ -37,7 +37,27 @@ const JobDetailPage = () => {
   // Try to find job from published jobs first, then from mock data
   const publishedJob = publishedJobs.find((j) => j.id === id);
   const mockJob = mockJobs.find((j) => j.id === id);
-  const job = publishedJob || mockJob;
+  const rawJob = publishedJob || mockJob;
+
+  // Normalize published job to match mock job structure
+  const job = rawJob ? {
+    ...rawJob,
+    type: rawJob.type || 'full-time',
+    company: {
+      name: rawJob.company?.name || rawJob.company || 'Unknown Company',
+      website: rawJob.company?.website,
+      description: rawJob.company?.description || 'No description available',
+      industry: rawJob.company?.industry || 'Technology',
+      logo: rawJob.company?.logo,
+    },
+    experienceLevel: rawJob.experienceLevel || 'intermediate',
+    experienceRange: rawJob.experienceRange || { min: 0, max: 5 },
+    isRemote: rawJob.isRemote || false,
+    salary: rawJob.salary || { min: 0, max: 0, currency: 'INR', period: 'yearly' },
+    description: rawJob.description || rawJob.rawText || 'No description available',
+    location: rawJob.location || 'Not specified',
+    applicantsCount: rawJob.applicantsCount || 0,
+  } : null;
 
   if (!job) {
     return (
@@ -53,7 +73,7 @@ const JobDetailPage = () => {
   }
 
   const formatSalary = () => {
-    if (!job.salary) return 'Not disclosed';
+    if (!job || !job.salary) return 'Not disclosed';
     const { min, max, currency, period } = job.salary;
     const formatNum = (n: number) => {
       if (currency === 'INR') {
@@ -161,9 +181,9 @@ const JobDetailPage = () => {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Badge variant="fullTime" className="capitalize">{job.type.replace('-', ' ')}</Badge>
+                <Badge variant="fullTime" className="capitalize">{(job.type || 'full-time').replace('-', ' ')}</Badge>
                 {job.isRemote && <Badge variant="remote">Remote</Badge>}
-                <Badge variant="outline">{job.experienceLevel}</Badge>
+                <Badge variant="outline">{job.experienceLevel || 'intermediate'}</Badge>
               </div>
             </div>
 
@@ -226,7 +246,7 @@ const JobDetailPage = () => {
                   <Calendar className="h-4 w-4" />
                   <span className="text-sm">Job Type</span>
                 </div>
-                <p className="font-semibold capitalize">{job.type.replace('-', ' ')}</p>
+                <p className="font-semibold capitalize">{(job.type || 'full-time').replace('-', ' ')}</p>
               </div>
             </div>
 
