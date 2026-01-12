@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,9 @@ const JobsPage = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { publishedJobs } = useJobsStore();
   
+  const [backendJobs, setBackendJobs] = useState<any[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilters, setTypeFilters] = useState<JobType[]>([]);
@@ -44,7 +47,26 @@ const JobsPage = () => {
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'salary'>('relevance');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Combine mock jobs with published jobs
+  // Fetch jobs from backend
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await fetch('/api/job?status=active');
+        if (response.ok) {
+          const jobs = await response.json();
+          setBackendJobs(jobs);
+        }
+      } catch (err) {
+        console.error('Failed to fetch jobs:', err);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+
+    fetchJobs();
+  }, []);
+
+  // Combine mock jobs with published jobs (local store and backend)
   const allJobs = useMemo(() => {
     const convertedPublished = publishedJobs
       .filter(pj => pj.status === 'active')
@@ -72,8 +94,32 @@ const JobsPage = () => {
         postedAt: pj.createdAt,
       })) as Job[];
 
-    return [...mockJobs, ...convertedPublished];
-  }, [publishedJobs]);
+    const convertedBackendJobs = backendJobs.map((bj) => ({
+      id: bj._id,
+      title: bj.title,
+      company: {
+        name: bj.meta?.company || 'Company',
+        logo: undefined,
+        description: '',
+        website: '',
+        industry: 'Technology',
+      },
+      location: bj.meta?.location || bj.location || 'Remote',
+      isRemote: bj.meta?.isRemote || true,
+      type: 'full-time' as JobType,
+      experienceLevel: 'fresher' as ExperienceLevel,
+      experienceRange: { min: 0, max: 3 },
+      salary: bj.meta?.salary ? { min: 0, max: 100000, currency: 'INR' } : undefined,
+      description: bj.description,
+      requirements: [],
+      skills: bj.meta?.techStack || [],
+      batch: bj.meta?.batch,
+      applyLink: '#',
+      postedAt: bj.createdAt,
+    })) as Job[];
+
+    return [...mockJobs, ...convertedPublished, ...convertedBackendJobs];
+  }, [publishedJobs, backendJobs]);
 
   const jobTypes: { value: JobType; label: string }[] = [
     { value: 'full-time', label: 'Full-time' },

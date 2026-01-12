@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -48,7 +49,7 @@ import { adminJobs } from '@/data/adminMockData';
 import { cn } from '@/lib/utils';
 import { parseJobText, ParsedJobData } from '@/services/aiJobParser';
 import { JobPreviewDialog } from '@/components/admin/JobPreviewDialog';
-import { useJobsStore } from '@/store/jobsStore';
+import { useToast } from '@/hooks/use-toast';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -65,6 +66,8 @@ const sourceColors: Record<string, string> = {
 };
 
 export default function AdminJobs() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [rawJobText, setRawJobText] = useState('');
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
@@ -85,10 +88,19 @@ export default function AdminJobs() {
     setError(null);
     setIsLoading(true);
     try {
-      // Simulate AI parsing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const parsed = parseJobText(rawJobText);
+      // Call backend AI parser
+      const response = await fetch('/api/job/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: rawJobText }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to parse job text');
+      }
+
+      const parsed = await response.json();
       setParsedJob(parsed);
       setIsAiDialogOpen(false);
       setIsPreviewOpen(true);
@@ -99,29 +111,76 @@ export default function AdminJobs() {
     }
   };
 
-  const handlePublishJob = () => {
+  const handlePublishJob = async () => {
     if (!parsedJob) return;
     
-    publishJob({
-      title: parsedJob.title,
-      company: parsedJob.company,
-      description: parsedJob.description,
-      location: parsedJob.location,
-      isRemote: parsedJob.isRemote,
-      salary: parsedJob.salary,
-      stipend: parsedJob.stipend,
-      techStack: parsedJob.techStack,
-      tags: parsedJob.tags,
-      eligibility: parsedJob.eligibility,
-      experience: parsedJob.experience,
-      batch: parsedJob.batch,
-      status: 'active',
-      rawText: rawJobText,
-    });
-    
-    setIsPreviewOpen(false);
-    setRawJobText('');
-    setParsedJob(null);
+    setIsLoading(true);
+    try {
+      // Call backend to create published job
+      const response = await fetch('/api/job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: parsedJob.title,
+          company: parsedJob.company,
+          description: parsedJob.description,
+          location: parsedJob.location,
+          isRemote: parsedJob.isRemote,
+          salary: parsedJob.salary,
+          stipend: parsedJob.stipend,
+          techStack: parsedJob.techStack,
+          tags: parsedJob.tags,
+          eligibility: parsedJob.eligibility,
+          experience: parsedJob.experience,
+          batch: parsedJob.batch,
+          status: 'active',
+          rawText: rawJobText,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish job');
+      }
+
+      // Also publish to local store for immediate UI update
+      publishJob({
+        title: parsedJob.title,
+        company: parsedJob.company,
+        description: parsedJob.description,
+        location: parsedJob.location,
+        isRemote: parsedJob.isRemote,
+        salary: parsedJob.salary,
+        stipend: parsedJob.stipend,
+        techStack: parsedJob.techStack,
+        tags: parsedJob.tags,
+        eligibility: parsedJob.eligibility,
+        experience: parsedJob.experience,
+        batch: parsedJob.batch,
+        status: 'active',
+        rawText: rawJobText,
+      });
+      
+      setIsPreviewOpen(false);
+      setRawJobText('');
+      setParsedJob(null);
+      
+      // Show success message
+      toast({
+        title: 'Job Published! 🎉',
+        description: `"${parsedJob.title}" has been published and is now visible in the jobs listing.`,
+        duration: 4000,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish job');
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to publish job',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

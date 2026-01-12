@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Job, JobStatus } from '@/types';
 
 interface ParsedJob {
@@ -27,31 +28,38 @@ interface JobsState {
   updateJobStatus: (id: string, status: JobStatus) => void;
 }
 
-export const useJobsStore = create<JobsState>((set) => ({
-  publishedJobs: [],
+export const useJobsStore = create<JobsState>()(
+  persist(
+    (set) => ({
+      publishedJobs: [],
 
-  publishJob: (job) => {
-    const newJob: ParsedJob = {
-      ...job,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({
-      publishedJobs: [newJob, ...state.publishedJobs],
-    }));
-  },
+      publishJob: (job) => {
+        const newJob: ParsedJob = {
+          ...job,
+          id: Date.now().toString(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          publishedJobs: [newJob, ...state.publishedJobs],
+        }));
+      },
 
-  removeJob: (id) => {
-    set((state) => ({
-      publishedJobs: state.publishedJobs.filter(job => job.id !== id),
-    }));
-  },
+      removeJob: (id) => {
+        set((state) => ({
+          publishedJobs: state.publishedJobs.filter(job => job.id !== id),
+        }));
+      },
 
-  updateJobStatus: (id, status) => {
-    set((state) => ({
-      publishedJobs: state.publishedJobs.map(job =>
-        job.id === id ? { ...job, status } : job
-      ),
-    }));
-  },
-}));
+      updateJobStatus: (id, status) => {
+        set((state) => ({
+          publishedJobs: state.publishedJobs.map(job =>
+            job.id === id ? { ...job, status } : job
+          ),
+        }));
+      },
+    }),
+    {
+      name: 'jobs-storage',
+    }
+  )
+);
