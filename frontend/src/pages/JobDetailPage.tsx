@@ -35,14 +35,33 @@ const JobDetailPage = () => {
   const { toast } = useToast();
   const { publishedJobs } = useJobsStore();
 
-  // Try to find job from published jobs first, then from mock data
+  // Try to find job from published jobs first, then from mock data, otherwise fetch from backend
   const publishedJob = publishedJobs.find((j) => j.id === id);
   const mockJob = mockJobs.find((j) => j.id === id);
-  const rawJob = publishedJob || mockJob;
+  const [fetchedJob, setFetchedJob] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const rawJob = publishedJob || mockJob || fetchedJob;
+
+  useEffect(() => {
+    // If the job is not present locally, try fetching it from the backend
+    if (!publishedJob && !mockJob && id) {
+      setLoading(true);
+      setFetchedJob(null);
+      const base = (import.meta as any).env?.VITE_BACKEND_URL || '';
+      const url = base ? `${base.replace(/\/$/, '')}/api/jobs/${id}` : `/api/jobs/${id}`;
+      fetch(url)
+        .then((r) => {
+          if (!r.ok) throw new Error(`Failed to fetch job: ${r.status}`);
+          return r.json();
+        })
+        .then((data) => setFetchedJob(data))
+        .catch((err) => console.warn('Job fetch failed', err))
+        .finally(() => setLoading(false));
+    }
+  }, [id, publishedJob, mockJob]);
 
   // Local state for job details (may come from backend if not in store)
   const [jobData, setJobData] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (rawJob) {

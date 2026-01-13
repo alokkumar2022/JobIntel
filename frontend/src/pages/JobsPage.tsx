@@ -47,28 +47,43 @@ const JobsPage = () => {
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'salary'>('relevance');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch jobs from backend
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const response = await fetch('/api/jobs?status=active');
-        if (response.ok) {
-          try {
-            const jobs = await response.json();
-            setBackendJobs(jobs);
-          } catch (jsonErr) {
-            console.log('Backend returned invalid JSON, using local store only');
-          }
-        } else {
-          console.log(`Backend returned status ${response.status}, using local store only`);
-        }
-      } catch (err) {
-        console.log('Backend not available, using local store only:', err);
-      } finally {
-        setLoadingJobs(false);
-      }
-    };
+  // Backend base URL (set VITE_BACKEND_URL in production if backend is on a different host)
+  const backendBase = (import.meta as any).env?.VITE_BACKEND_URL || '';
 
+  // Fetch jobs from backend (extracted so we can call it on demand)
+  const [backendError, setBackendError] = useState<string | null>(null);
+
+  const fetchJobs = async () => {
+    setLoadingJobs(true);
+    setBackendError(null);
+    try {
+      const base = backendBase ? backendBase.replace(/\/$/, '') : '';
+      const url = base ? `${base}/api/jobs?status=active` : '/api/jobs?status=active';
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        try {
+          const jobs = await response.json();
+          setBackendJobs(jobs);
+        } catch (jsonErr) {
+          console.warn('Backend returned invalid JSON, using local store only');
+          setBackendJobs([]);
+          setBackendError('Invalid JSON from backend');
+        }
+      } else {
+        console.warn(`Backend returned status ${response.status}, using local store only`);
+        setBackendJobs([]);
+        setBackendError(`Status ${response.status}`);
+      }
+    } catch (err: any) {
+      console.warn('Backend not available, using local store only:', err);
+      setBackendJobs([]);
+      setBackendError(err?.message || String(err));
+    } finally {
+      setLoadingJobs(false);
+    }
+  };
+
+  useEffect(() => {
     fetchJobs();
   }, []);
 
@@ -209,6 +224,8 @@ const JobsPage = () => {
     setTypeFilters([]);
     setExperienceFilters([]);
     setRemoteOnly(false);
+    // Re-fetch jobs from backend when clearing filters to ensure live data shows up
+    fetchJobs();
   };
 
   const hasActiveFilters =
@@ -335,6 +352,13 @@ const JobsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Backend status */}
+      {backendError && (
+        <div className="container mx-auto px-4 py-2">
+          <p className="text-sm text-destructive">Backend not reachable: {backendError}. Showing local jobs only. <button onClick={() => fetchJobs()} className="underline">Retry</button></p>
+        </div>
+      )}
 
       {/* Results */}
       <div className="container mx-auto px-4 py-6">
