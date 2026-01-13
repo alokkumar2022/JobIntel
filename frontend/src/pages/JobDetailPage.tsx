@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Seo from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,27 +40,93 @@ const JobDetailPage = () => {
   const mockJob = mockJobs.find((j) => j.id === id);
   const rawJob = publishedJob || mockJob;
 
-  // Normalize published job to match mock job structure
-  const job = rawJob ? {
-    ...rawJob,
-    type: rawJob.type || 'full-time',
-    company: {
-      name: rawJob.company?.name || rawJob.company || 'Unknown Company',
-      website: rawJob.company?.website,
-      description: rawJob.company?.description || 'No description available',
-      industry: rawJob.company?.industry || 'Technology',
-      logo: rawJob.company?.logo,
-    },
-    experienceLevel: rawJob.experienceLevel || 'intermediate',
-    experienceRange: rawJob.experienceRange || { min: 0, max: 5 },
-    isRemote: rawJob.isRemote || false,
-    salary: rawJob.salary || { min: 0, max: 0, currency: 'INR', period: 'yearly' },
-    description: rawJob.description || rawJob.rawText || 'No description available',
-    location: rawJob.location || 'Not specified',
-    applicantsCount: rawJob.applicantsCount || 0,
-  } : null;
+  // Local state for job details (may come from backend if not in store)
+  const [jobData, setJobData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (rawJob) {
+      setJobData({
+        ...rawJob,
+        type: rawJob.type || 'full-time',
+        company: {
+          name: rawJob.company?.name || rawJob.company || 'Unknown Company',
+          website: rawJob.company?.website,
+          description: rawJob.company?.description || 'No description available',
+          industry: rawJob.company?.industry || 'Technology',
+          logo: rawJob.company?.logo,
+        },
+        experienceLevel: rawJob.experienceLevel || 'intermediate',
+        experienceRange: rawJob.experienceRange || { min: 0, max: 5 },
+        isRemote: rawJob.isRemote || false,
+        salary: rawJob.salary || { min: 0, max: 0, currency: 'INR', period: 'yearly' },
+        description: rawJob.description || rawJob.rawText || 'No description available',
+        location: rawJob.location || 'Not specified',
+        applicantsCount: rawJob.applicantsCount || 0,
+      });
+      return;
+    }
+
+    // If not found locally, fetch from backend by ID
+    const fetchJob = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/jobs/${id}`);
+        if (res.ok) {
+          const bj = await res.json();
+          setJobData({
+            id: bj._id,
+            title: bj.title,
+            company: {
+              name: bj.meta?.company || 'Company',
+              logo: undefined,
+              description: bj.meta?.companyDescription || '',
+              website: bj.meta?.companyUrl || '',
+              industry: 'Technology',
+            },
+            location: bj.meta?.location || bj.location || 'Remote',
+            isRemote: bj.meta?.isRemote ?? false,
+            type: 'full-time',
+            experienceLevel: 'fresher',
+            experienceRange: { min: 0, max: 3 },
+            salary: bj.meta?.salary ? { min: 0, max: 100000, currency: 'INR' } : undefined,
+            description: bj.description || bj.rawHtml || 'No description available',
+            requirements: [],
+            skills: bj.meta?.techStack || [],
+            batch: bj.meta?.batch,
+            applyLink: bj.applyUrl || '#',
+            postedAt: bj.createdAt,
+            applicantsCount: bj.applicantsCount || 0,
+            deadline: bj.deadline || undefined,
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to fetch job details from backend:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJob();
+  }, [id, publishedJob, mockJob]);
+
+  const job = jobData;
 
   if (!job) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+              <Clock className="h-6 w-6 text-muted-foreground animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold mb-4">Loading job details...</h1>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

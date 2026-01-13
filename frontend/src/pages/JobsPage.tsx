@@ -96,7 +96,7 @@ const JobsPage = () => {
         requirements: [],
         skills: pj.techStack,
         batch: pj.batch,
-        applyLink: '#',
+        applyLink: pj.applyUrl || '#',
         postedAt: pj.createdAt,
       })) as Job[];
 
@@ -111,7 +111,7 @@ const JobsPage = () => {
         industry: 'Technology',
       },
       location: bj.meta?.location || bj.location || 'Remote',
-      isRemote: bj.meta?.isRemote || true,
+      isRemote: bj.meta?.isRemote ?? false,
       type: 'full-time' as JobType,
       experienceLevel: 'fresher' as ExperienceLevel,
       experienceRange: { min: 0, max: 3 },
@@ -120,7 +120,7 @@ const JobsPage = () => {
       requirements: [],
       skills: bj.meta?.techStack || [],
       batch: bj.meta?.batch,
-      applyLink: '#',
+      applyLink: bj.applyUrl || '#',
       postedAt: bj.createdAt,
     })) as Job[];
 
